@@ -1,0 +1,42 @@
+@font-face {
+    font-family: "ArcaMajora";
+    src: url('./assets/fonts/ArcaMajora3-Bold.otf') format('truetype');
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: "ArcaMajora";
+    src: url('./assets/fonts/ArcaMajora3-Heavy.otf') format('truetype');
+    font-weight: 900;
+}
+
+@font-face {
+    font-family: "Poppins";
+    src: url('./assets/fonts/Poppins-Regular.otf') format('opentype');
+    font-weight: normal;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+    color: gainsboro;
+}
+
+.swiper-pagination-bullet {
+    background-color: gray;
+    opacity: 1;
+}
+
+.swiper-pagination-bullet-active {
+    background-color: gainsboro;
+}
+
+/* Add this to your global CSS file or styled component */
+.custom-nav-link {
+    color: #ff5722;
+    /* Link color */
+}
+
+.custom-nav-link:hover {
+    color: #ffab91;
+    /* Hover color */
+}
