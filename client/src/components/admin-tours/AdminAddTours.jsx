@@ -1,4 +1,4 @@
-import { Box, Button, FormLabel, Grid, IconButton, ImageList, ImageListItem, InputAdornment, List, ListItem, ListItemText, Modal, Paper, Stack, TextField, Typography } from '@mui/material'
+import { Alert, Box, Button, FormLabel, Grid, IconButton, ImageList, ImageListItem, InputAdornment, List, ListItem, ListItemText, Modal, Paper, Snackbar, Stack, TextField, Typography } from '@mui/material'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
@@ -8,7 +8,9 @@ import { Field, FieldArray, Form, Formik } from 'formik'
 import { format } from 'date-fns'
 import { grey } from '@mui/material/colors'
 import { useEffect, useState } from 'react'
-import { useAddTourMutation } from '../../redux/apis/tour.apis'
+import { useAddTourMutation, useUpdateTourMutation } from '../../redux/apis/tour.apis'
+import PropTypes from 'prop-types'
+import { toast } from '../../services/toast'
 
 const inputLabelProps = {
     sx: {
@@ -43,35 +45,37 @@ const textFieldStyles = {
     },
 };
 
-const AdminAddTours = () => {
+const AdminAddTours = ({ selectedTour }) => {
     const [formErrors, setFormErrors] = useState([])
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [open, setOpen] = useState(false);
+    const [removeImages, setRemoveImages] = useState([])
 
     const [addTour] = useAddTourMutation()
+    const [updateTour, { data, error, isSuccess, isError }] = useUpdateTourMutation()
 
     const initialValues = {
-        name: '',
-        location: '',
-        duration: '',
-        availability_from: '',
-        availability_to: '',
-        max_people: '',
-        min_age: '',
-        price: '',
-        includes: '',
-        excludes: '',
-        itinerary: [{
+        name: selectedTour?.name || '',
+        location: selectedTour?.location || '',
+        duration: selectedTour?.duration || '',
+        availability_from: selectedTour?.availability_from || '',
+        availability_to: selectedTour?.availability_to || '',
+        max_people: selectedTour?.max_people || '',
+        min_age: selectedTour?.min_age || '',
+        price: selectedTour?.price || '',
+        includes: selectedTour?.includes || '',
+        excludes: selectedTour?.excludes || '',
+        itinerary: selectedTour?.itinerary || [{
             day: '',
             title: '',
             desc: '',
         }],
-        faqs: [{
+        faqs: selectedTour?.faqs || [{
             title: '',
             desc: '',
         }],
-        images: [],
-        desc: '',
+        images: selectedTour?.images || [],
+        desc: selectedTour?.desc || '',
 
 
         newInclude: '',
@@ -150,11 +154,29 @@ const AdminAddTours = () => {
         setFieldValue('editIndex', index); // Store the index for updating later
     };
 
+    const handleDeleteImage = (index, images, setFieldValue) => {
+        setRemoveImages((prev) => [...prev, index])
+        const updatedImages = images.filter((_, i) => i !== index)
+        setFieldValue("images", updatedImages);
+    };
+
+    const handleEditImage = (event, index, images, setFieldValue) => {
+        const file = event.target.files[0];
+        setRemoveImages((prev) => [...prev, index])
+        if (file) {
+            const updatedImages = [...images];
+            updatedImages[index] = file;
+            setFieldValue("images", updatedImages);
+        }
+    };
+
     const onSubmit = (values) => {
+        console.log(values);
+
         setIsSubmitted(true)
+        values = { ...values, removeImages }
 
         if (formErrors.length === 0) {
-            console.log(values, formErrors);
             const formData = new FormData()
 
             const removeKeys = ['newInclude', 'newExclude', 'editIndex'];
@@ -162,8 +184,8 @@ const AdminAddTours = () => {
             Object.keys(values).forEach(key => {
                 if (removeKeys.includes(key)) return;
 
-                if (key === 'includes' || key === 'excludes' || key === 'images') {
-                    values[key].forEach(item => {
+                if (key === 'includes' || key === 'excludes' || key === 'images' || key === 'removeImages') {
+                    values[key].forEach((item) => {
                         formData.append(key, item);
                     });
                 } else if (key === 'itinerary' || key === 'faqs') {
@@ -178,17 +200,21 @@ const AdminAddTours = () => {
                 }
             });
 
-            addTour(formData)
-
-
+            if (selectedTour) {
+                updateTour({ tourData: formData, id: selectedTour._id })
+            } else {
+                addTour(formData)
+            }
         }
     }
 
     useEffect(() => {
-
-    }, [isSubmitted])
+        // isSuccess && toast.showSuccess(data.message)
+        isError && toast.showError(error.data.message)
+    }, [isSuccess, isError, data, error])
 
     return <>
+        <pre>{JSON.stringify(error, null, 2)}</pre>
         <Box>
             {(formErrors.length > 0 && isSubmitted) && <Box sx={{
                 paddingY: 1, paddingX: 2, marginBottom: '16px', backgroundColor: '#cd2c22', color: 'white',
@@ -714,7 +740,7 @@ const AdminAddTours = () => {
                                         sx={{ display: 'none' }}
                                         id="file-upload"
                                         type="file"
-                                        multiple
+                                        multiple={true}
                                         onChange={(event) => {
                                             const files = event.target.files
                                             setFieldValue("images", [...values.images, ...files]);
@@ -730,19 +756,78 @@ const AdminAddTours = () => {
                                 {/* Image Preview */}
                                 <Box marginTop={'32px'}>
                                     {
-                                        values.images.length > 0 && <ImageList sx={{ width: '100%', height: '400px' }} cols={2} >
+                                        (values.images.length > 0) && <ImageList sx={{ width: '100%', height: '400px' }} cols={2} >
                                             {
-                                                values.images.map((item, index) => <ImageListItem key={index}>
+                                                values.images.map((item, index) => (
+
+                                                    <ImageListItem key={index}>
+                                                        <Box
+                                                            component="img"
+                                                            src={item instanceof File ? URL.createObjectURL(item) : item}
+                                                            alt={`Preview ${index}`}
+                                                            sx={{ width: "100%", height: "170px" }}
+                                                        />
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: selectedTour ? 0 : 2 }}>
+                                                            <Typography>{item.name}</Typography>
+                                                            <Box>
+                                                                {/* Edit Button */}
+                                                                <IconButton edge="end" aria-label="edit">
+                                                                    <FormLabel htmlFor={`${index}`}>
+                                                                        <FontAwesomeIcon icon={faEdit} color="#2e8adb" fontSize="19px" />
+                                                                    </FormLabel>
+                                                                </IconButton>
+                                                                <TextField
+                                                                    id={`${index}`}
+                                                                    type="file"
+                                                                    sx={{ display: "none" }}
+                                                                    onChange={(e) => handleEditImage(e, index, values.images, setFieldValue, item)}
+                                                                />
+
+                                                                {/* Delete Button */}
+                                                                <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteImage(index, values.images, setFieldValue)} sx={{ marginLeft: '4px' }}>
+                                                                    <FontAwesomeIcon icon={faTrash} color="#f21839" fontSize="18px" />
+                                                                </IconButton>
+                                                            </Box>
+                                                        </Box>
+                                                    </ImageListItem>
+                                                ))
+                                            }
+
+                                        </ImageList>
+                                    }
+                                    {/* {
+                                        selectedTour && <ImageList sx={{ width: '100%', height: '400px' }} cols={2} >
+                                            {
+                                                selectedTour.images.map((item, index) => <ImageListItem key={index}>
                                                     <Box
                                                         component="img"
-                                                        src={URL.createObjectURL(item)}
+                                                        src={`${import.meta.env.VITE_BACKEND_URL}/${item}`}
                                                         alt={`Preview ${index}`}
                                                         sx={{ width: "100%", height: "170px" }}
                                                     />
+                                                    <Box>
+                                                        <IconButton edge="end" aria-label="edit">
+                                                            <FormLabel htmlFor={`e-${index}`}>
+                                                                <FontAwesomeIcon icon={faEdit} color="#2e8adb" fontSize="19px" />
+                                                            </FormLabel>
+                                                        </IconButton>
+                                                        <TextField
+                                                            id={`e-${index}`}
+                                                            type="file"
+                                                            sx={{ display: "none" }}
+                                                            onChange={(e) => handleEditImage(e, index, selectedTour.images, setFieldValue)}
+                                                        />
+
+                                                        <IconButton edge="end" aria-label="delete"
+                                                            onClick={() => handleDeleteImage(index, selectedTour.images, setFieldValue)}
+                                                            sx={{ marginLeft: '4px' }}>
+                                                            <FontAwesomeIcon icon={faTrash} color="#f21839" fontSize="18px" />
+                                                        </IconButton>
+                                                    </Box>
                                                 </ImageListItem>)
                                             }
                                         </ImageList>
-                                    }
+                                    } */}
                                 </Box>
                             </Box>
 
@@ -752,9 +837,32 @@ const AdminAddTours = () => {
                 }}
             </Formik>
 
+            <Snackbar
+                autoHideDuration={4000}
+                sx={{ backgroundColor: "#00c979", color: "#00c979" }}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                open={isSuccess}
+            >
+                <Alert
+                    variant="filled"
+                    severity="success"
+                    sx={{
+                        width: "100%",
+                        backgroundColor: "#00c979",
+                        color: "white", // Set text color to white
+                    }}
+                >
+                    Login Success
+                </Alert>
+            </Snackbar>
 
         </Box>
     </>
 }
 
 export default AdminAddTours
+
+
+AdminAddTours.propTypes = {
+    selectedTour: PropTypes.object,
+}

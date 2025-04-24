@@ -16,6 +16,7 @@ export const tourApi = createApi({
                 },
                 invalidatesTags: ["tour"]
             }),
+
             getTours: builder.query({
                 query: () => {
                     return {
@@ -29,8 +30,51 @@ export const tourApi = createApi({
                 providesTags: ["tour"]
             }),
 
+            getTourDetails: builder.query({
+                query: id => {
+                    return {
+                        url: `/tour-details/${id}`,
+                        method: "GET",
+                    }
+                },
+                transformResponse: (data) => {
+                    return data.result
+                },
+                providesTags: ["tour"]
+            }),
+
+            updateTour: builder.mutation({
+                query: ({ tourData, id }) => {
+                    console.log(tourData, id);
+
+                    return {
+                        url: `/update-tour/${id}`,
+                        method: "PUT",
+                        body: tourData
+                    }
+                },
+                invalidatesTags: ["tour"]
+            }),
+
+            deleteTour: builder.mutation({
+                query: id => {
+                    console.log(id);
+                    return {
+                        url: `/delete-tour/${id}`,
+                        method: "DELETE",
+                    }
+                },
+                invalidatesTags: ["tour"]
+            }),
+
         }
     }
 })
 
-export const { useAddTourMutation, useGetToursQuery } = tourApi 
+export const {
+    useAddTourMutation,
+    useGetToursQuery,
+    useGetTourDetailsQuery,
+    useUpdateTourMutation,
+    useDeleteTourMutation
+} = tourApi 

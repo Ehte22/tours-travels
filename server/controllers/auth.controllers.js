@@ -107,11 +107,9 @@ exports.singInWithGoogle = asyncHandler(async (req, res) => {
     const client = new OAuth2Client({ credential: process.env.GOOGLE_CLIENT_ID })
 
     const verify = await client.verifyIdToken({ idToken: credential })
-    console.log(verify);
-
 
     if (!verify) {
-        return res.status(401).json({ message: 'Unautorized Access' })
+        return res.status(401).json({ message: 'Unauthorized Access' })
     }
 
     const { email, given_name, family_name, picture } = verify.payload

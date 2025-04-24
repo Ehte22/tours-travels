@@ -4,7 +4,7 @@ import { faCalendarDays, faClock, faPlaneDeparture, faStar, faStarHalfAlt } from
 import { useNavigate } from 'react-router-dom'
 import PropTypes from 'prop-types'
 
-const AdminTourCard = ({ item, setOpenModal }) => {
+const AdminTourCard = ({ item, openTourDetails, isAdmin }) => {
 
     const navigate = useNavigate()
     const renderStars = () => {
@@ -30,8 +30,8 @@ const AdminTourCard = ({ item, setOpenModal }) => {
         <Card>
             <CardMedia
                 component="img"
-                image={`${import.meta.env.VITE_BACKEND_URL}/${item.images[0]}`}
-                // image={item.images[0]}
+                // image={isAdmin ? `${import.meta.env.VITE_BACKEND_URL}/${item.images[0]}` : item.images[0]}
+                image={item.images[0]}
                 alt={item.name}
             />
             <CardContent>
@@ -88,10 +88,7 @@ const AdminTourCard = ({ item, setOpenModal }) => {
                                 <Typography textAlign={'center'} color={'gray'} marginTop={'4px'} fontSize={'12px'}>({item.reviews}) Reviews</Typography>
 
                                 <Button variant='contained'
-                                    onClick={() => {
-                                        handleTourDetails
-                                        setOpenModal(true)
-                                    }}
+                                    onClick={isAdmin ? openTourDetails : handleTourDetails}
                                     sx={{
                                         marginTop: '12px',
                                         backgroundColor: '#cd2c22',
@@ -111,7 +108,8 @@ const AdminTourCard = ({ item, setOpenModal }) => {
 
 AdminTourCard.propTypes = {
     item: PropTypes.object.isRequired,
-    setOpenModal: PropTypes.func.isRequired
+    openTourDetails: PropTypes.func,
+    isAdmin: PropTypes.bool
 }
 
 export default AdminTourCard
